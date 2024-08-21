@@ -12,14 +12,15 @@ class Sensor(Base):
     address = Column(String, nullable=True)
     key = Column(String, nullable=True)
 
-    entities = relationship("Entity", viewonly=True )
+    entities = relationship("Entity", viewonly=True)
+
 
 class Entity(Base):
     __tablename__ = "entities"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     sensor_id = Column(Integer, ForeignKey("sensors.id"))
-    name = Column(String, unique=True, index=True)
+    name = Column(String, index=True)
     unit = Column(String, nullable=True)
     description = Column(String, nullable=True)
 

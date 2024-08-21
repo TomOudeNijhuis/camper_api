@@ -89,7 +89,7 @@ class VictronScanner(BaseScanner):
             raise AdvertisementKeyMissingError(f"No key available for {address}")
 
     def callback(self, ble_device: BLEDevice, raw_data: bytes):
-        print(f"Received data from {ble_device.address.lower()}: {raw_data.hex()}")
+        # print(f"Received data from {ble_device.address.lower()}: {raw_data.hex()}")
         try:
             device = self.get_device(ble_device, raw_data)
         except AdvertisementKeyMissingError:

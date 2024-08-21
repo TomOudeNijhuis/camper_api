@@ -6,8 +6,8 @@ After=multi-user.target
 User=tom
 Group=tom
 Type=idle
-WorkingDirectory=/home/tom/camper-api
-ExecStart=/home/tom/camper-api/venv/bin/uvicorn camper_api.main:app --reload
+WorkingDirectory=/home/tom/camper_api
+ExecStart=/home/tom/camper_api/venv/bin/uvicorn camper_api.main:app --host 0.0.0.0
 Restart=on-failure
 
 [Install]
