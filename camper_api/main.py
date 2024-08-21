@@ -9,6 +9,8 @@ from typing import cast
 from . import crud, models, schemas
 from .database import SessionLocal, engine
 from .victron_scanner import VictronScanner
+from .config import settings
+
 
 logger = logging.getLogger("victron_ble")
 logging.basicConfig()
@@ -54,7 +56,7 @@ class ProcessVictronData:
                 self._db.add(db_item)
                 self._db.commit()
 
-            await asyncio.sleep(10)
+            await asyncio.sleep(settings.state_sample_interval)
 
 
 @asynccontextmanager

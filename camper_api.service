@@ -1,0 +1,14 @@
+[Unit]
+Description=Embed Bot
+After=multi-user.target
+
+[Service]
+User=tom
+Group=tom
+Type=idle
+WorkingDirectory=/home/tom/camper-api
+ExecStart=/home/tom/camper-api/venv/bin/uvicorn camper_api.main:app --reload
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
