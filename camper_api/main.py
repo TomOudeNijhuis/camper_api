@@ -115,11 +115,11 @@ def update_sensor(
     sensor: schemas.SensorUpdate,
     db: Session = Depends(get_db),
 ):
-    db_sensor = crud.get_sensor(db, sensor_id=sensor_id)
+    db_sensor = crud.get_sensor(db, sensor_id)
     if db_sensor is None:
         raise HTTPException(status_code=404, detail="Sensor not found")
 
-    crud.update_sensor(db=db, sensor_id=sensor_id, sensor=sensor)
+    crud.update_sensor(db, sensor_id, sensor)
 
     db.refresh(db_sensor)
 
@@ -137,13 +137,13 @@ def update_sensor(
 def create_sensor(
     request: Request, sensor: schemas.SensorCreate, db: Session = Depends(get_db)
 ):
-    db_sensor = crud.get_sensor_by_name(db, sensor_name=sensor.name)
+    db_sensor = crud.get_sensor_by_name(db, sensor.name)
     if db_sensor:
         raise HTTPException(
             status_code=400, detail=f"Sensor with name {sensor.name} already registered"
         )
 
-    db_sensor = crud.create_sensor(db=db, sensor=sensor)
+    db_sensor = crud.create_sensor(db, sensor)
 
     # Update device data in ble scanner
     scanner = cast(VictronScanner, request.state.victron_scanner)
@@ -154,6 +154,26 @@ def create_sensor(
     return db_sensor
 
 
+@app.delete("/sensors/{sensor_id}", response_model=dict)
+async def delete_sensor(
+    request: Request,
+    sensor_id: int,
+    db: Session = Depends(get_db),
+):
+    db_sensor = crud.get_sensor(db, sensor_id)
+    if db_sensor is None:
+        raise HTTPException(status_code=404, detail=f"Sensor {sensor_id} not found")
+
+    # Update device data in ble scanner
+    scanner = cast(VictronScanner, request.state.victron_scanner)
+    scanner.remove_device(db_sensor.address)
+
+    db.delete(db_sensor)
+    db.commit()
+
+    return {"message": f"Sensor {sensor_id} removed."}
+
+
 @app.get("/sensors/{sensor_id}/entities/", response_model=list[schemas.Entity])
 def read_entities(sensor_id: int, db: Session = Depends(get_db)):
     sensors = crud.get_entities_by_sensor(db, sensor_id)
@@ -162,7 +182,7 @@ def read_entities(sensor_id: int, db: Session = Depends(get_db)):
 
 @app.get("/entities/{entity_id}", response_model=schemas.Entity)
 def read_entity(entity_id: int, db: Session = Depends(get_db)):
-    db_entity = crud.get_entity(db, entity_id=entity_id)
+    db_entity = crud.get_entity(db, entity_id)
     if db_entity is None:
         raise HTTPException(status_code=404, detail="Entity not found")
 
@@ -176,20 +196,18 @@ def create_entity(
     sensor_id: int,
     db: Session = Depends(get_db),
 ):
-    db_entity = crud.get_entity_by_name(
-        db, sensor_id=sensor_id, entity_name=entity.name
-    )
+    db_entity = crud.get_entity_by_name(db, sensor_id, entity.name)
     if db_entity:
         raise HTTPException(
             status_code=400,
             detail=f"Entity with name {entity.name} already registered for sensor {sensor_id}",
         )
 
-    db_sensor = crud.get_sensor(db=db, sensor_id=sensor_id)
+    db_sensor = crud.get_sensor(db, sensor_id)
     if db_sensor is None:
         raise HTTPException(status_code=404, detail="Sensor not found")
 
-    db_entity = crud.create_entity(db=db, entity=entity, sensor_id=sensor_id)
+    db_entity = crud.create_entity(db, entity, sensor_id)
 
     # Update device data in ble scanner
     scanner = cast(VictronScanner, request.state.victron_scanner)
@@ -204,7 +222,7 @@ async def delete_entity(
     entity_id: int,
     db: Session = Depends(get_db),
 ):
-    db_entity = crud.get_entity(db, entity_id=entity_id)
+    db_entity = crud.get_entity(db, entity_id)
     if db_entity is None:
         raise HTTPException(status_code=404, detail="Entity not found")
 
@@ -215,17 +233,17 @@ async def delete_entity(
     db.delete(db_entity)
     db.commit()
 
-    return {"message": "entity removed."}
+    return {"message": f"entity {entity_id} removed."}
 
 
 @app.get("/entities/{entity_id}/states", response_model=list[schemas.State])
 def read_state(
     entity_id: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
 ):
-    db_entity = crud.get_entity(db, entity_id=entity_id)
+    db_entity = crud.get_entity(db, entity_id)
     if db_entity is None:
         raise HTTPException(status_code=404, detail="Entity not found")
 
-    db_states = crud.get_states(db, entity_id=entity_id, skip=skip, limit=limit)
+    db_states = crud.get_states(db, entity_id, skip=skip, limit=limit)
 
     return db_states
