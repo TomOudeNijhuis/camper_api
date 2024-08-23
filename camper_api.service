@@ -1,5 +1,5 @@
 [Unit]
-Description=Embed Bot
+Description=Camper API
 After=multi-user.target
 
 [Service]
