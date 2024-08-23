@@ -12,7 +12,7 @@ class Sensor(Base):
     address = Column(String, nullable=True)
     key = Column(String, nullable=True)
 
-    entities = relationship("Entity", viewonly=True)
+    entities = relationship("Entity", cascade="all, delete-orphan")
 
 
 class Entity(Base):
@@ -25,7 +25,7 @@ class Entity(Base):
     description = Column(String, nullable=True)
 
     sensor = relationship("Sensor", viewonly=True)
-    states = relationship("State", viewonly=True)
+    states = relationship("State", cascade="all, delete-orphan")
 
 
 class State(Base):

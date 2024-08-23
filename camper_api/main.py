@@ -1,9 +1,10 @@
 from fastapi import Depends, FastAPI, HTTPException, Request
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
+from sqlalchemy import delete
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import cast
 
 from . import crud, models, schemas
@@ -28,6 +29,25 @@ def get_db():
         db.close()
 
 
+class DeleteOldStates:
+    def __init__(self):
+        self._db = next(get_db())
+
+    async def process_task(self):
+        while 1:
+            delete_threshold = (datetime.now() - timedelta(days=10)).replace(
+                microsecond=0
+            )
+            print(f"Deleting data older than {delete_threshold}")
+
+            self._db.query(models.State).filter(
+                models.State.created < delete_threshold
+            ).delete()
+            self._db.commit()
+
+            await asyncio.sleep(settings.state_delete_interval)
+
+
 class ProcessVictronData:
     def __init__(self, scanner: VictronScanner):
         self._scanner = scanner
@@ -45,7 +65,6 @@ class ProcessVictronData:
     async def process_task(self):
         while 1:
             entity_data = self._scanner.get_entity_data()
-            print(entity_data)
 
             for entity_id, entity_state in entity_data.items():
                 db_item = models.State(
@@ -63,7 +82,9 @@ class ProcessVictronData:
 async def lifespan(app: FastAPI):
     scanner = VictronScanner()
     processor_victron_data = ProcessVictronData(scanner)
+    delete_old_tasks = DeleteOldStates()
 
+    asyncio.create_task(delete_old_tasks.process_task())
     asyncio.create_task(processor_victron_data.process_task())
     await scanner.start()
 

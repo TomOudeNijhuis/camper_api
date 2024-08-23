@@ -5,8 +5,9 @@ The goal is to run this service on a raspberry pi zero 2 w to collect data. The 
 ## Development
 
 Status:
-- [ ] Stage 1: Victron BLE devices (WIP)
-- [ ] Stage 2: Statistics
+- [x] Stage 1: Victron BLE devices
+- [ ] Stage 2: Control and measure camper basics
+- [ ] Stage 3: Statistics
 
 ### Stage 1: Victron BLE devices
 
@@ -19,7 +20,15 @@ The following information is stored and controllable through the API:
 
 Inspired from https://data.home-assistant.io/docs/states
 
-### Stage 2: Statistics
+### Stage 2: Control and measure camper basics
+
+For example:
+* Read and store fresh and dirty water tank status
+* Control household power and water pump power
+* Read and store household power, water pump power and exteral power connected status
+* Read and store car battery voltage
+
+### Stage 3: Statistics
 
 Add Long- and short-term statistics in the same way as home-assistant with:
 - 5 min and hourly stats. Where 5 min stats are removed after 10 days and hourly is kept indefinitely 
