@@ -26,7 +26,7 @@ For example:
 * Read and store fresh and dirty water tank status
 * Control household power and water pump power
 * Read and store household power, water pump power and exteral power connected status
-* Read and store car battery voltage
+* Read and store car starter battery voltage
 
 ### Stage 3: Statistics
 
