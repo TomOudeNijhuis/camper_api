@@ -44,8 +44,14 @@ class Sensor(SensorBase):
 
 class State(BaseModel):
     id: int
+    entity_id: int
     state: str
     created: datetime
 
     class Config:
         orm_mode = True
+
+
+class ActionData(BaseModel):
+    key: str
+    value: int | str

@@ -73,3 +73,12 @@ def get_states(db: Session, entity_id: int, skip: int = 0, limit: int = 100):
         .limit(limit)
         .all()
     )
+
+
+def get_state(db: Session, entity_id: int):
+    return (
+        db.query(models.State)
+        .filter(models.State.entity_id == entity_id)
+        .order_by(models.State.created.desc())
+        .first()
+    )

@@ -4,3 +4,4 @@ alembic
 uvicorn
 victron_ble
 pydantic_settings
+pyserial

@@ -8,25 +8,17 @@ from datetime import datetime, timedelta
 from typing import cast
 
 from . import crud, models, schemas
-from .database import SessionLocal, engine
+from .database import engine, get_db
 from .victron_scanner import VictronScanner
+from .interface_serial import InterfaceSerial
 from .config import settings
 
 
-logger = logging.getLogger("victron_ble")
+logger = logging.getLogger("camper-api")
 logging.basicConfig()
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 models.Base.metadata.create_all(bind=engine)
-
-
-# Dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 class DeleteOldStates:
@@ -35,9 +27,9 @@ class DeleteOldStates:
 
     async def process_task(self):
         while 1:
-            delete_threshold = (datetime.now() - timedelta(days=10)).replace(
-                microsecond=0
-            )
+            delete_threshold = (
+                datetime.now() - timedelta(days=settings.state_delete_after_days)
+            ).replace(microsecond=0)
             print(f"Deleting data older than {delete_threshold}")
 
             self._db.query(models.State).filter(
@@ -60,7 +52,8 @@ class ProcessVictronData:
 
         for sensor in sensors:
             entities = {e.name: e.id for e in sensor.entities}
-            self._scanner.add_device(sensor.address, sensor.key, entities)
+            if sensor.address and sensor.key:
+                self._scanner.add_device(sensor.address, sensor.key, entities)
 
     async def process_task(self):
         while 1:
@@ -82,13 +75,15 @@ class ProcessVictronData:
 async def lifespan(app: FastAPI):
     scanner = VictronScanner()
     processor_victron_data = ProcessVictronData(scanner)
+    interface_serial = InterfaceSerial()
     delete_old_tasks = DeleteOldStates()
 
     asyncio.create_task(delete_old_tasks.process_task())
     asyncio.create_task(processor_victron_data.process_task())
+    asyncio.create_task(interface_serial.process_task())
     await scanner.start()
 
-    yield {"victron_scanner": scanner}
+    yield {"victron_scanner": scanner, "interface_serial": interface_serial}
 
 
 app = FastAPI(lifespan=lifespan)
@@ -176,8 +171,20 @@ async def delete_sensor(
 
 @app.get("/sensors/{sensor_id}/entities/", response_model=list[schemas.Entity])
 def read_entities(sensor_id: int, db: Session = Depends(get_db)):
-    sensors = crud.get_entities_by_sensor(db, sensor_id)
-    return sensors
+    entities = crud.get_entities_by_sensor(db, sensor_id)
+    return entities
+
+
+@app.get("/sensors/{sensor_id}/states/", response_model=list[schemas.State])
+def read_sensor_states(sensor_id: int, db: Session = Depends(get_db)):
+    entities = crud.get_entities_by_sensor(db, sensor_id)
+    db_states = []
+    for entity in entities:
+        db_state = crud.get_state(db, entity.id)
+        if db_state:
+            db_states.append(db_state)
+
+    return db_states
 
 
 @app.get("/entities/{entity_id}", response_model=schemas.Entity)
@@ -247,3 +254,29 @@ def read_state(
     db_states = crud.get_states(db, entity_id, skip=skip, limit=limit)
 
     return db_states
+
+
+@app.post("/action/{target_entity_id}", response_model=dict)
+def execute_action(
+    request: Request,
+    target_entity_id: str,
+    action_data: dict,
+    db: Session = Depends(get_db),
+):
+    db_entity = crud.get_entity(db, target_entity_id)
+    if db_entity is None:
+        raise HTTPException(status_code=404, detail="Entity not found")
+
+    interface_serial = cast(InterfaceSerial, request.state.interface_serial)
+
+    match db_entity.name:
+        case "household_state":
+            response = interface_serial.household(**action_data)
+        case "pump_state":
+            response = interface_serial.pump(**action_data)
+        case _:
+            raise HTTPException(
+                status_code=404, detail=f"Action on entity {db_entity.name} not allowed"
+            )
+
+    return response
