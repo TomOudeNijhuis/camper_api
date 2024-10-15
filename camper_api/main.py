@@ -180,7 +180,7 @@ def read_sensor_states(sensor_id: int, db: Session = Depends(get_db)):
     entities = crud.get_entities_by_sensor(db, sensor_id)
     db_states = []
     for entity in entities:
-        db_state = crud.get_state(db, entity.id)
+        db_state = crud.get_state(db, entity.id, max_age_minutes=5)
         if db_state:
             db_states.append(db_state)
 

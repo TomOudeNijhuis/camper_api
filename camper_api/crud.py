@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, update
+from datetime import datetime, timedelta
 
 from . import models, schemas
 
@@ -75,10 +76,11 @@ def get_states(db: Session, entity_id: int, skip: int = 0, limit: int = 100):
     )
 
 
-def get_state(db: Session, entity_id: int):
-    return (
-        db.query(models.State)
-        .filter(models.State.entity_id == entity_id)
-        .order_by(models.State.created.desc())
-        .first()
-    )
+def get_state(db: Session, entity_id: int, max_age_minutes: None | int = None):
+    db_query = db.query(models.State).filter(models.State.entity_id == entity_id)
+
+    if max_age_minutes:
+        age_threshold = datetime.now() - timedelta(minutes=max_age_minutes)
+        db_query = db_query.filter(models.State.created > age_threshold)
+
+    return db_query.order_by(models.State.created.desc()).first()
