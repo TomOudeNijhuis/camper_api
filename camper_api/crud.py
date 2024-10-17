@@ -3,6 +3,8 @@ from sqlalchemy import and_, update
 from datetime import datetime, timedelta
 
 from . import models, schemas
+from .memory_cache import MemoryCache
+from .config import settings
 
 
 def get_sensors(db: Session, skip: int = 0, limit: int = 100):
@@ -76,11 +78,42 @@ def get_states(db: Session, entity_id: int, skip: int = 0, limit: int = 100):
     )
 
 
-def get_state(db: Session, entity_id: int, max_age_minutes: None | int = None):
+async def create_state(db: Session, entity_id: int, state: str):
+    stamp = datetime.now().replace(microsecond=0)
+
+    backend = MemoryCache.get_backend()
+    cache_state, cache_created = await backend.get(f"state_{entity_id}")
+
+    await backend.set(
+        f"state_{entity_id}", state, stamp, settings.state_storage_interval
+    )
+
+    if cache_state is None:
+        db_item = models.State(
+            entity_id=entity_id,
+            state=state,
+            created=stamp,
+        )
+        db.add(db_item)
+        db.commit()
+
+        return db_item
+    else:
+        return schemas.State(entity_id=entity_id, state=state, created=stamp)
+
+
+async def get_state(db: Session, entity_id: int):
+    backend = MemoryCache.get_backend()
+    cache_state, cache_created = await backend.get(f"state_{entity_id}")
+
+    if cache_state:
+        return schemas.State(
+            entity_id=entity_id, state=cache_state, created=cache_created
+        )
+
     db_query = db.query(models.State).filter(models.State.entity_id == entity_id)
 
-    if max_age_minutes:
-        age_threshold = datetime.now() - timedelta(minutes=max_age_minutes)
-        db_query = db_query.filter(models.State.created > age_threshold)
+    age_threshold = datetime.now() - timedelta(minutes=5)
+    db_query = db_query.filter(models.State.created > age_threshold)
 
     return db_query.order_by(models.State.created.desc()).first()

@@ -6,7 +6,7 @@ The goal is to run this service on a raspberry pi zero 2 w to collect data. The 
 
 Status:
 - [x] Stage 1: Victron BLE devices
-- [ ] Stage 2: Control and measure camper basics
+- [x] Stage 2: Control and measure camper basics
 - [ ] Stage 3: Statistics
 
 ### Stage 1: Victron BLE devices
@@ -57,6 +57,9 @@ Run at boot:
 service checks:
 * sudo systemctl status camper_api.service
 * journalctl -u camper_api.service -f
+
+Dummy serial port:
+* `socat -d -d pty,raw,echo=0 pty,raw,echo=0`
 
 ### Add some data
 

@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
 
 
 class EntityBase(BaseModel):
@@ -42,10 +43,17 @@ class Sensor(SensorBase):
         orm_mode = True
 
 
-class State(BaseModel):
-    id: int
+class StateBase(BaseModel):
     entity_id: int
     state: str
+
+
+class StateCreate(StateBase):
+    pass
+
+
+class State(StateBase):
+    id: Optional[int] = None
     created: datetime
 
     class Config:

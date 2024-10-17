@@ -11,6 +11,7 @@ from . import crud, models, schemas
 from .database import engine, get_db
 from .victron_scanner import VictronScanner
 from .interface_serial import InterfaceSerial
+from .memory_cache import MemoryCache
 from .config import settings
 
 
@@ -60,15 +61,9 @@ class ProcessVictronData:
             entity_data = self._scanner.get_entity_data()
 
             for entity_id, entity_state in entity_data.items():
-                db_item = models.State(
-                    entity_id=entity_id,
-                    state=entity_state,
-                    created=datetime.now().replace(microsecond=0),
-                )
-                self._db.add(db_item)
-                self._db.commit()
+                await crud.create_state(self._db, entity_id, entity_state)
 
-            await asyncio.sleep(settings.state_sample_interval)
+            await asyncio.sleep(settings.state_monitor_sample_interval)
 
 
 @asynccontextmanager
@@ -77,6 +72,7 @@ async def lifespan(app: FastAPI):
     processor_victron_data = ProcessVictronData(scanner)
     interface_serial = InterfaceSerial()
     delete_old_tasks = DeleteOldStates()
+    MemoryCache.init()
 
     asyncio.create_task(delete_old_tasks.process_task())
     asyncio.create_task(processor_victron_data.process_task())
@@ -176,11 +172,11 @@ def read_entities(sensor_id: int, db: Session = Depends(get_db)):
 
 
 @app.get("/sensors/{sensor_id}/states/", response_model=list[schemas.State])
-def read_sensor_states(sensor_id: int, db: Session = Depends(get_db)):
+async def read_sensor_states(sensor_id: int, db: Session = Depends(get_db)):
     entities = crud.get_entities_by_sensor(db, sensor_id)
     db_states = []
     for entity in entities:
-        db_state = crud.get_state(db, entity.id, max_age_minutes=5)
+        db_state = await crud.get_state(db, entity.id)
         if db_state:
             db_states.append(db_state)
 
@@ -254,6 +250,17 @@ def read_state(
     db_states = crud.get_states(db, entity_id, skip=skip, limit=limit)
 
     return db_states
+
+
+@app.post("/entities/{entity_id}/state", response_model=schemas.State)
+async def create_state(
+    request: Request, state: schemas.StateCreate, db: Session = Depends(get_db)
+):
+    db_state = await crud.create_state(
+        db, **state.model_dump(exclude_none=True, exclude_unset=True)
+    )
+
+    return db_state
 
 
 @app.post("/action/{target_entity_id}", response_model=dict)

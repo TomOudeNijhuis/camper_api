@@ -80,42 +80,36 @@ class InterfaceSerial:
 
         return v
 
-    def _store_state(self, entity_name, state):
-        db_item = models.State(
-            entity_id=self.entities_by_name[entity_name].id,
-            state=state,
-            created=datetime.now().replace(microsecond=0),
-        )
-        self._db.add(db_item)
-        self._db.commit()
+    async def _store_state(self, entity_name, state):
+        await crud.create_state(self._db, self.entities_by_name[entity_name].id, state)
 
     async def process_task(self):
         while 1:
             try:
                 value = self._command("VOLTAGE", "household")
-                self._store_state("household_voltage", value)
+                await self._store_state("household_voltage", value)
 
                 value = self._command("VOLTAGE", "starter")
-                self._store_state("starter_voltage", value)
+                await self._store_state("starter_voltage", value)
 
                 value = self._command("VOLTAGE", "mains")
-                self._store_state("mains_voltage", value)
+                await self._store_state("mains_voltage", value)
 
                 value = self._command("HOUSEHOLD", "?")
-                self._store_state("household_state", value)
+                await self._store_state("household_state", value)
 
                 value = self._command("WATER", "?")
-                self._store_state("water_state", value)
+                await self._store_state("water_state", value)
 
                 value = self._command("WASTE", "?")
-                self._store_state("waste_state", value)
+                await self._store_state("waste_state", value)
 
                 value = self._command("PUMP", "?")
-                self._store_state("pump_state", value)
+                await self._store_state("pump_state", value)
             except Exception as ex:
                 logger.error("Error processing", exc_info=True)
 
-            await asyncio.sleep(settings.state_sample_interval)
+            await asyncio.sleep(settings.state_responsive_sample_interval)
 
     def household(self, state):
         new_state = self._command("HOUSEHOLD", str(state))

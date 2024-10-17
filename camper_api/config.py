@@ -2,7 +2,9 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    state_sample_interval: int = 60  # seconds
+    state_monitor_sample_interval: int = 60  # seconds
+    state_responsive_sample_interval: int = 10  # seconds
+    state_storage_interval: int = 5 * 60  # seconds
     state_delete_interval: int = 60 * 60  # seconds
 
     state_delete_after_days: int = 10  # days
