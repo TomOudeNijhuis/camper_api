@@ -46,8 +46,6 @@ class InterfaceSerial:
                 )
                 self.entities_by_name[entity_name] = entity
 
-        print(self.entities_by_name)
-
     def _command(self, cmd, param):
         self._serial.flushInput()
 
@@ -75,8 +73,6 @@ class InterfaceSerial:
             )
 
         _, v = resp_sections[1].split("=")
-
-        print(cmd, v)
 
         return v
 

@@ -82,13 +82,16 @@ async def create_state(db: Session, entity_id: int, state: str):
     stamp = datetime.now().replace(microsecond=0)
 
     backend = MemoryCache.get_backend()
-    cache_state, cache_created = await backend.get(f"state_{entity_id}")
+    v_old = await backend.get(f"state_{entity_id}")
 
-    await backend.set(
-        f"state_{entity_id}", state, stamp, settings.state_storage_interval
-    )
+    if v_old and (
+        v_old.stored + timedelta(minutes=settings.state_storage_interval)
+        > datetime.now()
+    ):
+        # Just update cache
+        await backend.set(f"state_{entity_id}", state, stamp, v_old.stored)
 
-    if cache_state is None:
+    else:
         db_item = models.State(
             entity_id=entity_id,
             state=state,
@@ -97,19 +100,17 @@ async def create_state(db: Session, entity_id: int, state: str):
         db.add(db_item)
         db.commit()
 
-        return db_item
-    else:
-        return schemas.State(entity_id=entity_id, state=state, created=stamp)
+        await backend.set(f"state_{entity_id}", state, stamp, stamp)
+
+    return schemas.State(entity_id=entity_id, state=state, created=stamp)
 
 
 async def get_state(db: Session, entity_id: int):
     backend = MemoryCache.get_backend()
-    cache_state, cache_created = await backend.get(f"state_{entity_id}")
+    v = await backend.get(f"state_{entity_id}")
 
-    if cache_state:
-        return schemas.State(
-            entity_id=entity_id, state=cache_state, created=cache_created
-        )
+    if v:
+        return schemas.State(entity_id=entity_id, state=v.data_str, created=v.created)
 
     db_query = db.query(models.State).filter(models.State.entity_id == entity_id)
 

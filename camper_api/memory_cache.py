@@ -1,29 +1,27 @@
-import time
 from asyncio import Lock
 from dataclasses import dataclass
 from typing import Dict, Optional, ClassVar
-from datetime import datetime
+from datetime import datetime, timedelta
+
+from .config import settings
 
 
 @dataclass
 class Value:
     data_str: str
     created: datetime
-    ttl_ts: int
+    stored: datetime
 
 
 class InMemoryBackend:
     _store: Dict[str, Value] = {}
     _lock = Lock()
-
-    @property
-    def _now(self) -> int:
-        return int(time.time())
+    _ttl: int = settings.cache_retention
 
     def _get(self, key: str) -> Optional[Value]:
         v = self._store.get(key)
         if v:
-            if v.ttl_ts < self._now:
+            if v.created + timedelta(minutes=self._ttl) < datetime.now():
                 del self._store[key]
             else:
                 return v
@@ -33,15 +31,19 @@ class InMemoryBackend:
         async with self._lock:
             v = self._get(key)
             if v:
-                return v.data_str, v.created
+                return v
 
-            return None, None
+            return None
 
     async def set(
-        self, key: str, data_str: str, created: datetime, expire: Optional[int] = None
+        self,
+        key: str,
+        data_str: str,
+        created: datetime,
+        stored: Optional[datetime] = None,
     ) -> None:
         async with self._lock:
-            self._store[key] = Value(data_str, created, self._now + (expire or 0))
+            self._store[key] = Value(data_str, created, stored)
 
     async def clear(self, key: Optional[str] = None) -> int:
         count = 0
