@@ -264,7 +264,7 @@ async def create_state(
 
 
 @app.post("/action/{target_entity_id}", response_model=dict)
-def execute_action(
+async def execute_action(
     request: Request,
     target_entity_id: str,
     action_data: dict,
@@ -278,9 +278,9 @@ def execute_action(
 
     match db_entity.name:
         case "household_state":
-            response = interface_serial.household(**action_data)
+            response = await interface_serial.household(**action_data)
         case "pump_state":
-            response = interface_serial.pump(**action_data)
+            response = await interface_serial.pump(**action_data)
         case _:
             raise HTTPException(
                 status_code=404, detail=f"Action on entity {db_entity.name} not allowed"

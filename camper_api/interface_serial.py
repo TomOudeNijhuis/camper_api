@@ -111,15 +111,15 @@ class InterfaceSerial:
 
             await asyncio.sleep(settings.state_responsive_sample_interval)
 
-    def household(self, state):
+    async def household(self, state):
         new_state = self._command("HOUSEHOLD", str(state))
-        self._store_state("household_state", new_state)
+        await self._store_state("household_state", new_state)
 
         return {"state": new_state}
 
-    def pump(self, state):
+    async def pump(self, state):
         new_state = self._command("PUMP", str(state))
-        self._store_state("pump_state", new_state)
+        await self._store_state("pump_state", new_state)
 
         return {"state": new_state}
 
