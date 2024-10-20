@@ -11,7 +11,7 @@ class Settings(BaseSettings):
 
     state_delete_after_days: int = 10  # days
 
-    interface_serial_port: str = "/dev/serial0"
+    interface_serial_port: str = "/dev/serial0"  # "/dev/pts/5"
     interface_serial_timeout: int = 3
     interface_serial_speed: int = 19200
 

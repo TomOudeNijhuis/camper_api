@@ -61,7 +61,7 @@ class ProcessVictronData:
             entity_data = self._scanner.get_entity_data()
 
             for entity_id, entity_state in entity_data.items():
-                await crud.create_state(self._db, entity_id, entity_state)
+                await crud.create_state(self._db, entity_id, str(entity_state))
 
             await asyncio.sleep(settings.state_monitor_sample_interval)
 
