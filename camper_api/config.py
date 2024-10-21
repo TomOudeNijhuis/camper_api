@@ -9,7 +9,7 @@ class Settings(BaseSettings):
 
     cache_retention: int = 5  # minutes
 
-    state_delete_after_days: int = 10  # days
+    state_delete_after_days: int = 7  # days
 
     interface_serial_port: str = "/dev/serial0"  # "/dev/pts/5"
     interface_serial_timeout: int = 3
