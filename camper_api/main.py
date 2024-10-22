@@ -9,8 +9,10 @@ from typing import cast
 
 from . import crud, models, schemas
 from .database import engine, get_db
-from .victron_scanner import VictronScanner
-from .interface_serial import InterfaceSerial
+from .plugins.victron_scanner import VictronScanner
+from .plugins.hymer_serial import HymerSerial
+from .plugins.bthome_scanner import BTHomeScanner
+from .plugins.api_bleak_scanner import ApiBleakScanner
 from .memory_cache import MemoryCache
 from .config import settings
 
@@ -41,45 +43,29 @@ class DeleteOldStates:
             await asyncio.sleep(settings.state_delete_interval)
 
 
-class ProcessVictronData:
-    def __init__(self, scanner: VictronScanner):
-        self._scanner = scanner
-        self._db = next(get_db())
-
-        self.add_sensors()
-
-    def add_sensors(self):
-        sensors = self._db.query(models.Sensor).all()
-
-        for sensor in sensors:
-            entities = {e.name: e.id for e in sensor.entities}
-            if sensor.address and sensor.key:
-                self._scanner.add_device(sensor.address, sensor.key, entities)
-
-    async def process_task(self):
-        while 1:
-            entity_data = self._scanner.get_entity_data()
-
-            for entity_id, entity_state in entity_data.items():
-                await crud.create_state(self._db, entity_id, str(entity_state))
-
-            await asyncio.sleep(settings.state_monitor_sample_interval)
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    scanner = VictronScanner()
-    processor_victron_data = ProcessVictronData(scanner)
-    interface_serial = InterfaceSerial()
+    api_bleak_scanner = ApiBleakScanner()
+    victron_scanner = VictronScanner()
+    api_bleak_scanner.add_callback(victron_scanner.detection_callback)
+    bthome_scanner = BTHomeScanner()
+    api_bleak_scanner.add_callback(bthome_scanner.scanner.detection_callback)
+    hymer_serial = HymerSerial()
     delete_old_tasks = DeleteOldStates()
     MemoryCache.init()
 
     asyncio.create_task(delete_old_tasks.process_task())
-    asyncio.create_task(processor_victron_data.process_task())
-    asyncio.create_task(interface_serial.process_task())
-    await scanner.start()
+    asyncio.create_task(victron_scanner.process_task())
+    asyncio.create_task(hymer_serial.process_task())
+    asyncio.create_task(bthome_scanner.process_runner())
 
-    yield {"victron_scanner": scanner, "interface_serial": interface_serial}
+    await api_bleak_scanner.start()
+
+    yield {
+        "victron_scanner": victron_scanner,
+        "hymer_serial": hymer_serial,
+        "bthome_scanner": bthome_scanner,
+    }
 
 
 app = FastAPI(lifespan=lifespan)
@@ -274,13 +260,13 @@ async def execute_action(
     if db_entity is None:
         raise HTTPException(status_code=404, detail="Entity not found")
 
-    interface_serial = cast(InterfaceSerial, request.state.interface_serial)
+    hymer_serial = cast(HymerSerial, request.state.hymer_serial)
 
     match db_entity.name:
         case "household_state":
-            response = await interface_serial.household(**action_data)
+            response = await hymer_serial.household(**action_data)
         case "pump_state":
-            response = await interface_serial.pump(**action_data)
+            response = await hymer_serial.pump(**action_data)
         case _:
             raise HTTPException(
                 status_code=404, detail=f"Action on entity {db_entity.name} not allowed"

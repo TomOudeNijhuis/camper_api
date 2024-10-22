@@ -135,4 +135,6 @@ sensor_id: 2
 
 ## Database migration
 
-`alembic revision -m "create account table"`
+init: `alembic init alembic`
+create: `alembic revision -m "create account table"`
+update: `alembic upgrade head`

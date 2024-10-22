@@ -1,11 +1,10 @@
 import asyncio
 import logging
 import serial
-from datetime import datetime
 
-from .config import settings
-from .database import get_db
-from . import crud, schemas, models
+from ..config import settings
+from ..database import get_db
+from .. import crud, schemas
 
 logger = logging.getLogger("camper-api")
 
@@ -20,12 +19,12 @@ CAMPER_ENTITIES = [
 ]
 
 
-class InterfaceSerial:
+class HymerSerial:
     def __init__(self):
         self._serial = serial.Serial(
-            settings.interface_serial_port,
-            settings.interface_serial_speed,
-            timeout=settings.interface_serial_timeout,
+            settings.hymer_serial_port,
+            settings.hymer_serial_speed,
+            timeout=settings.hymer_serial_timeout,
         )
 
         self._db = next(get_db())
@@ -121,6 +120,6 @@ class InterfaceSerial:
 
 
 if __name__ == "__main__":
-    interface_serial = InterfaceSerial()
+    hymer_serial = HymerSerial()
 
-    print(interface_serial._command("HOUSEHOLD", "0"))
+    print(hymer_serial._command("HOUSEHOLD", "0"))
