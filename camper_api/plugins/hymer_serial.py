@@ -47,7 +47,7 @@ class HymerSerial:
             resp = resp[:-1]
 
         if instruction != resp:
-            raise Exception(f"No echo or echo not matching: {resp}")
+            raise Exception(f"No echo or echo not matching. I:{instruction}, R:{resp}")
 
         resp = self._serial.readline()
 
