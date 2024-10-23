@@ -39,9 +39,12 @@ class HymerSerial:
     def _command(self, cmd, param):
         self._serial.flushInput()
 
-        instruction = f"{cmd} {param}\r\n".encode("ascii")
+        instruction = f"{cmd} {param}\r".encode("ascii")
         self._serial.write(instruction)
         resp = self._serial.readline()
+
+        if resp[-1] == "\n":
+            resp = resp[:-1]
 
         if instruction != resp:
             raise Exception(f"No echo or echo not matching: {resp}")
