@@ -43,8 +43,8 @@ class HymerSerial:
         self._serial.write(instruction)
         resp = self._serial.readline()
 
-        # if resp[-1] == "\n":
-        #    resp = resp[:-1]
+        if resp[-1] == b"\n":
+            resp = resp[:-1]
 
         if instruction != resp:
             raise Exception(f"No echo or echo not matching. I:{instruction}, R:{resp}")
