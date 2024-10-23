@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import serial
 
 from ..config import settings
 from ..database import get_db
@@ -36,7 +35,6 @@ class BTHomeScanner:
         self.scanner = BTHomeBaseScanner(
             self.entity_id_by_name.keys(), callback=self._bthome_callback
         )
-        print(self.entity_id_by_name)
 
     async def start(self):
         await self.scanner.start()
@@ -53,4 +51,4 @@ class BTHomeScanner:
             for entity_id, state in self.state_cache.items():
                 await crud.create_state(self._db, entity_id, str(state))
 
-            await asyncio.sleep(settings.state_responsive_sample_interval)
+            await asyncio.sleep(settings.state_monitor_sample_interval)

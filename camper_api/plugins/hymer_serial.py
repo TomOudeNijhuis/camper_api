@@ -8,19 +8,10 @@ from .. import crud, schemas
 
 logger = logging.getLogger("camper-api")
 
-CAMPER_ENTITIES = [
-    "household_voltage",
-    "starter_voltage",
-    "mains_voltage",
-    "household_state",
-    "water_state",
-    "waste_state",
-    "pump_state",
-]
-
 
 class HymerSerial:
     def __init__(self):
+        self.monitor_counter = 0
         self._serial = serial.Serial(
             settings.hymer_serial_port,
             settings.hymer_serial_speed,
@@ -29,16 +20,16 @@ class HymerSerial:
 
         self._db = next(get_db())
 
-        self.sensor = crud.get_sensor_by_name(self._db, "camper")
+        self.sensor = crud.get_sensor_by_name(self._db, settings.hymer_sensor)
         if self.sensor is None:
             self.sensor = crud.create_sensor(
-                self._db, schemas.SensorCreate(name="camper")
+                self._db, schemas.SensorCreate(name=settings.hymer_sensor)
             )
 
         entities = crud.get_entities_by_sensor(self._db, self.sensor.id)
         self.entities_by_name = {e.name: e for e in entities}
 
-        for entity_name in CAMPER_ENTITIES:
+        for entity_name in settings.hymer_entities:
             if entity_name not in self.entities_by_name.keys():
                 entity = crud.create_entity(
                     self._db, schemas.EntityCreate(name=entity_name), self.sensor.id
@@ -81,12 +72,6 @@ class HymerSerial:
     async def process_task(self):
         while 1:
             try:
-                value = self._command("VOLTAGE", "household")
-                await self._store_state("household_voltage", value)
-
-                value = self._command("VOLTAGE", "starter")
-                await self._store_state("starter_voltage", value)
-
                 value = self._command("VOLTAGE", "mains")
                 await self._store_state("mains_voltage", value)
 
@@ -101,19 +86,46 @@ class HymerSerial:
 
                 value = self._command("PUMP", "?")
                 await self._store_state("pump_state", value)
+
+                if self.monitor_counter <= 0:
+                    self.monitor_counter = (
+                        settings.state_monitor_sample_interval
+                        // settings.state_responsive_sample_interval
+                    )
+
+                    # FIXME: Return these to responsive interval after serial port speed is increased
+                    value = self._command("VOLTAGE", "household")
+                    await self._store_state("household_voltage", value)
+
+                    value = self._command("VOLTAGE", "starter")
+                    await self._store_state("starter_voltage", value)
+
+                    # Disable neopixels... can't see them and only drawing current
+                    self._command("NEOPIXEL1", "black")
+                    self._command("NEOPIXEL2", "black")
+
+                else:
+                    self.monitor_counter -= 1
+
             except Exception as ex:
                 logger.error("Error processing", exc_info=True)
 
             await asyncio.sleep(settings.state_responsive_sample_interval)
 
     async def household(self, state):
-        new_state = self._command("HOUSEHOLD", str(state))
+        self._command("HOUSEHOLD", str(state))
+
+        # FIXME: Workarond for bug in PIC code. Read value again
+        new_state = self._command("HOUSEHOLD", "?")
         await self._store_state("household_state", new_state)
 
         return {"state": new_state}
 
     async def pump(self, state):
         new_state = self._command("PUMP", str(state))
+
+        # FIXME: Workarond for bug in PIC code. Read value again
+        new_state = self._command("PUMP", "?")
         await self._store_state("pump_state", new_state)
 
         return {"state": new_state}

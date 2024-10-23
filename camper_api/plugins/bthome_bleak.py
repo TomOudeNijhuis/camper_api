@@ -2,7 +2,6 @@ import asyncio
 from typing import Set, Any
 from datetime import datetime, timezone
 import struct
-from bleak import BleakScanner
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from .bthome_const import MEAS_TYPES

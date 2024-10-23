@@ -56,6 +56,17 @@ class Settings(BaseSettings):
         ],
     }
 
+    hymer_sensor: str = "camper"
+    hymer_entities: list[str] = [
+        "household_voltage",
+        "starter_voltage",
+        "mains_voltage",
+        "household_state",
+        "water_state",
+        "waste_state",
+        "pump_state",
+    ]
+
 
 class DebugSettings(Settings):
     hymer_serial_port: str = "/dev/pts/5"
