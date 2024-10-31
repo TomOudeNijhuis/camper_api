@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     hymer_serial_port: str = "/dev/serial0"
     hymer_serial_timeout: int = 3
-    hymer_serial_speed: int = 19200
+    hymer_serial_speed: int = 115200
 
     bthome_sensors: dict[str, str] = {
         "inside": "7C:C6:B6:61:E5:68",

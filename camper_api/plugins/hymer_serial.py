@@ -90,18 +90,17 @@ class HymerSerial:
                 value = self._command("PUMP", "?")
                 await self._store_state("pump_state", value)
 
+                value = self._command("VOLTAGE", "household")
+                await self._store_state("household_voltage", value)
+
+                value = self._command("VOLTAGE", "starter")
+                await self._store_state("starter_voltage", value)
+
                 if self.monitor_counter <= 0:
                     self.monitor_counter = (
                         settings.state_monitor_sample_interval
                         // settings.state_responsive_sample_interval
                     )
-
-                    # FIXME: Return these to responsive interval after serial port speed is increased
-                    value = self._command("VOLTAGE", "household")
-                    await self._store_state("household_voltage", value)
-
-                    value = self._command("VOLTAGE", "starter")
-                    await self._store_state("starter_voltage", value)
 
                     # Disable neopixels... can't see them and only drawing current
                     self._command("NEOPIXEL1", "black")
@@ -116,20 +115,12 @@ class HymerSerial:
             await asyncio.sleep(settings.state_responsive_sample_interval)
 
     async def household(self, state):
-        self._command("HOUSEHOLD", str(state))
-
-        # FIXME: Workarond for bug in PIC code. Read value again
-        new_state = self._command("HOUSEHOLD", "?")
-        await self._store_state("household_state", new_state)
+        new_state = self._command("HOUSEHOLD", str(state))
 
         return {"state": new_state}
 
     async def pump(self, state):
         new_state = self._command("PUMP", str(state))
-
-        # FIXME: Workarond for bug in PIC code. Read value again
-        new_state = self._command("PUMP", "?")
-        await self._store_state("pump_state", new_state)
 
         return {"state": new_state}
 
