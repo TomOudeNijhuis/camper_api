@@ -13,6 +13,8 @@ from .plugins.victron_scanner import VictronScanner
 from .plugins.hymer_serial import HymerSerial
 from .plugins.bthome_scanner import BTHomeScanner
 from .plugins.api_bleak_scanner import ApiBleakScanner
+from .plugins.questdb_uploader import QuestDbUploader
+
 from .memory_cache import MemoryCache
 from .config import settings
 
@@ -52,12 +54,15 @@ async def lifespan(app: FastAPI):
     api_bleak_scanner.add_callback(bthome_scanner.scanner.detection_callback)
     hymer_serial = HymerSerial()
     delete_old_tasks = DeleteOldStates()
+    questdb_uploader = QuestDbUploader()
+
     MemoryCache.init()
 
     asyncio.create_task(delete_old_tasks.process_task())
     asyncio.create_task(victron_scanner.process_task())
     asyncio.create_task(hymer_serial.process_task())
     asyncio.create_task(bthome_scanner.process_runner())
+    asyncio.create_task(questdb_uploader.process_runner())
 
     await api_bleak_scanner.start()
 
@@ -233,7 +238,7 @@ def read_state(
     if db_entity is None:
         raise HTTPException(status_code=404, detail="Entity not found")
 
-    db_states = crud.get_states(db, entity_id, skip=skip, limit=limit)
+    db_states = crud.get_states(db, entity_id=entity_id, skip=skip, limit=limit)
 
     return db_states
 

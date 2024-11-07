@@ -35,3 +35,13 @@ class State(Base):
     entity_id = Column(Integer, ForeignKey("entities.id"))
     state = Column(String(255))
     created = Column(DateTime)
+
+    entity = relationship("Entity", viewonly=True)
+
+
+class Parameter(Base):
+    __tablename__ = "parameters"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(64), unique=True, index=True)
+    value = Column(String(255), nullable=True)

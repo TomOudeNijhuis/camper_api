@@ -4,11 +4,16 @@ import platform
 
 class Settings(BaseSettings):
     sqlalchemy_database_url: str = "sqlite:///./storage.db"
-
+    questdb_config: str = (
+        "http::addr=phao.oudenijhuis.org:9000;username=admin;password=K%sE^+.>>Yzs^4Y;"
+    )
     state_monitor_sample_interval: int = 60  # seconds
     state_responsive_sample_interval: int = 10  # seconds
     state_storage_interval: int = 5  # minutes
     state_delete_interval: int = 60 * 60  # seconds
+    questdb_upload_timeout: int = 30  # seconds
+    questdb_upload_interval: int = 60 * 60  # seconds
+    questdb_startup_delay: int = 60  # seconds
 
     cache_retention: int = 5  # minutes
 

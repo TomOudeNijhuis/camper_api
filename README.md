@@ -67,6 +67,5 @@ remote:
 
 ## Database migration
 
-init: `alembic init alembic`
-create: `alembic revision -m "create account table"`
+create: `alembic revision --autogenerate -m "message"`
 update: `alembic upgrade head`

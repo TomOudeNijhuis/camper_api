@@ -43,7 +43,7 @@ class HymerSerial:
         self._serial.write(instruction)
         resp = self._serial.readline()
 
-        if resp[-1] == b"\n"[-1]:
+        if resp and resp[-1] == b"\n"[-1]:
             resp = resp[:-1]
 
         if instruction != resp:

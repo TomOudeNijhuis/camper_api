@@ -68,14 +68,22 @@ def create_entity(db: Session, entity: schemas.EntityCreate, sensor_id: int):
     return db_entity
 
 
-def get_states(db: Session, entity_id: int, skip: int = 0, limit: int = 100):
-    return (
-        db.query(models.State)
-        .filter(models.State.entity_id == entity_id)
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+def get_states(
+    db: Session,
+    entity_id: int = None,
+    skip: int = 0,
+    limit: int = 100,
+    after: datetime = None,
+):
+    states_query = db.query(models.State)
+
+    if entity_id:
+        states_query = states_query.filter(models.State.entity_id == entity_id)
+
+    if after:
+        states_query = states_query.filter(models.State.created > after)
+
+    return states_query.order_by(models.State.created).offset(skip).limit(limit).all()
 
 
 async def create_state(db: Session, entity_id: int, state: str):
@@ -118,3 +126,27 @@ async def get_state(db: Session, entity_id: int):
     db_query = db_query.filter(models.State.created > age_threshold)
 
     return db_query.order_by(models.State.created.desc()).first()
+
+
+async def get_parameter_value(db: Session, name: str):
+    param = db.query(models.Parameter).where(models.Parameter.name == name).first()
+    if param:
+        return param.value
+    else:
+        return None
+
+
+async def set_parameter_value(db: Session, name: str, value: str):
+    db_param = db.query(models.Parameter).where(models.Parameter.name == name).first()
+
+    if db_param:
+        db.execute(update(models.Parameter).filter_by(name=name).values(value=value))
+    else:
+        db_param = models.Parameter(
+            name=name,
+            value=value,
+        )
+        db.add(db_param)
+
+    db.commit()
+    return value
