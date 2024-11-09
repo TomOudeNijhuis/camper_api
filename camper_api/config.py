@@ -14,8 +14,8 @@ class Settings(BaseSettings):
     state_storage_interval: int = 5  # minutes
     state_delete_interval: int = 60 * 60  # seconds
 
-    questdb_upload_timeout: int = 10 * 60  # seconds
-    questdb_upload_interval: int = 15 * 60  # seconds
+    questdb_upload_timeout: int = 5 * 60  # seconds
+    questdb_upload_interval: int = 5 * 60  # seconds
     startup_delay: int = 5  # seconds
     questdb_startup_chunk_size: int = 100
     cache_retention: int = 5  # minutes

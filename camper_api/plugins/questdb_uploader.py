@@ -87,15 +87,14 @@ class QuestDbUploader:
         await asyncio.sleep(settings.startup_delay)
 
         while 1:
+            started = datetime.now()
             try:
                 active_config = await self.get_active_config()
                 last_upload = await self.get_last_upload()
 
                 new_last_upload = None
-                upload_started = datetime.now()
-                logger.info(
-                    f"last_upload: {last_upload}, upload_started {upload_started}"
-                )
+
+                logger.info(f"last_upload: {last_upload}, upload_started {started}")
 
                 timeout = ClientTimeout(total=10)
                 async with ClientSession(timeout=timeout) as session:
@@ -104,7 +103,7 @@ class QuestDbUploader:
                         states is None
                         or len(states) == settings.questdb_startup_chunk_size
                     ) and (
-                        datetime.now() - upload_started
+                        datetime.now() - started
                     ).total_seconds() < settings.questdb_upload_timeout:
                         if states is None:
                             x = 0
@@ -122,7 +121,7 @@ class QuestDbUploader:
                             new_last_upload = states[-1].created
 
                         logger.info(
-                            f"Runtime: {(datetime.now() - upload_started).total_seconds()}; "
+                            f"Runtime: {(datetime.now() - started).total_seconds()}; "
                             f"Chunk: {int(x / settings.questdb_startup_chunk_size)}; "
                             f"Last chunksize: {len(states)}."
                         )
@@ -136,4 +135,9 @@ class QuestDbUploader:
             except Exception:
                 logger.error("Exception", exc_info=True)
 
-            await asyncio.sleep(settings.questdb_upload_interval)
+            wait_time = (
+                settings.questdb_upload_interval
+                - (datetime.now() - started).total_seconds()
+            )
+            if wait_time > 0:
+                await asyncio.sleep(wait_time)
