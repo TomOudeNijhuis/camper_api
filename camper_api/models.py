@@ -38,6 +38,14 @@ class State(Base):
 
     entity = relationship("Entity", viewonly=True)
 
+    def row(self):
+        return [
+            self.created.isoformat(),
+            self.entity.sensor.name,
+            self.entity.name,
+            self.state,
+        ]
+
 
 class Parameter(Base):
     __tablename__ = "parameters"

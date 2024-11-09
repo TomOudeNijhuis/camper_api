@@ -1,8 +1,9 @@
-from questdb.ingress import Sender, IngressError
-import sys
 import logging
 import asyncio
 from datetime import datetime
+from aiohttp import ClientSession, ClientTimeout, FormData
+import csv
+import io
 
 from ..config import settings
 from ..database import get_db
@@ -22,22 +23,37 @@ DEDUP UPSERT KEYS(ts, sensor, entity);
 """
 
 
+class QuestImportException(Exception):
+    pass
+
+
 class QuestDbUploader:
     def __init__(self):
         self._db = next(get_db())
 
-    def upload_chunk(self, sender, states):
-        for di in states:
-            sender.row(
-                "states",
-                symbols={"sensor": di.entity.sensor.name, "entity": di.entity.name},
-                columns={
-                    "state": di.state,
-                },
-                at=di.created,
-            )
+    async def upload_chunk(self, states):
+        timeout = ClientTimeout(total=10)
+        async with ClientSession(timeout=timeout) as session:
+            for state in states:
+                async with session.get(
+                    settings.questdb_config,
+                    params={
+                        "query": (
+                            f"INSERT INTO states (ts, sensor, entity, state) "
+                            f"VALUES ('{state.created.isoformat()}', '{state.entity.sensor.name}', '{state.entity.name}', '{state.state}');"
+                        )
+                    },
+                ) as response:
+                    resp_json = await response.json()
 
-        sender.flush()
+                    if response.status != 200:
+                        raise QuestImportException(
+                            f"Failed to upload state: {response.status}"
+                        )
+                    if resp_json.get("dml") != "OK":
+                        raise QuestImportException(
+                            f"Failed to upload state: {resp_json}"
+                        )
 
     async def get_last_upload(self):
         last_upload_str = await crud.get_parameter_value(self._db, "last_upload")
@@ -59,36 +75,45 @@ class QuestDbUploader:
 
         while 1:
             try:
+                # await self.set_last_upload(datetime(2000, 1, 1))
                 last_upload = await self.get_last_upload()
                 new_last_upload = None
                 upload_started = datetime.now()
                 print(f"last_upload: {last_upload}, upload_started {upload_started}")
 
                 states = None
-                with Sender.from_conf(settings.questdb_config) as sender:
-                    while (states is None or len(states) == 100) and (
-                        datetime.now() - upload_started
-                    ).total_seconds() < settings.questdb_upload_timeout:
-                        x = 0 if states is None else x + 100
+                while (
+                    states is None or len(states) == settings.questdb_startup_chunk_size
+                ) and (
+                    datetime.now() - upload_started
+                ).total_seconds() < settings.questdb_upload_timeout:
+                    x = 0 if states is None else x + settings.questdb_startup_chunk_size
 
-                        states = crud.get_states(
-                            self._db, skip=x, limit=100, after=last_upload
-                        )
-                        if states:
-                            self.upload_chunk(sender, states)
-                            new_last_upload = states[-1].created
+                    states = crud.get_states(
+                        self._db,
+                        skip=x,
+                        limit=settings.questdb_startup_chunk_size,
+                        after=last_upload,
+                    )
+                    if states:
+                        await self.upload_chunk(states)
+                        new_last_upload = states[-1].created
 
-                        print(
-                            f"Running for {(datetime.now() - upload_started).total_seconds()} on state number {x}."
-                        )
+                    print(
+                        f"Runtime: {(datetime.now() - upload_started).total_seconds()}; "
+                        f"Chunk: {int(x / settings.questdb_startup_chunk_size)}; "
+                        f"Last chunksize: {len(states)}."
+                    )
 
                 if new_last_upload:
                     await self.set_last_upload(new_last_upload)
 
-            except IngressError:
-                logger.error("IngressError", exc_info=True)
+            except QuestImportException:
+                print("QuestImportException")
+                logger.error("QuestImportException", exc_info=True)
 
             except Exception:
+                print("Exception")
                 logger.error("Exception", exc_info=True)
 
             await asyncio.sleep(settings.questdb_upload_interval)
