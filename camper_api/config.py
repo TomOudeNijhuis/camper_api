@@ -4,9 +4,7 @@ import platform
 
 class Settings(BaseSettings):
     sqlalchemy_database_url: str = "sqlite:///./storage.db"
-    questdb_config: str = (
-        "http://admin:K%sE^+.>>Yzs^4Y@192.168.1.110:9000/exec"  # phao.oudenijhuis.org
-    )
+    questdb_config: str = "http://admin:K%sE^+.>>Yzs^4Y@phao.oudenijhuis.org:9000/exec"
 
     state_monitor_sample_interval: int = 60  # seconds
     state_responsive_sample_interval: int = 10  # seconds
