@@ -10,7 +10,7 @@ import time
 import logging
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("uvicorn.camper-api.bthome_ble")
 
 
 def short_address(address: str) -> str:

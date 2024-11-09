@@ -19,7 +19,7 @@ from .memory_cache import MemoryCache
 from .config import settings
 
 
-logger = logging.getLogger("camper-api")
+logger = logging.getLogger("uvicorn.camper-api.main")
 logging.basicConfig()
 logger.setLevel(logging.INFO)
 
@@ -35,7 +35,7 @@ class DeleteOldStates:
             delete_threshold = (
                 datetime.now() - timedelta(days=settings.state_delete_after_days)
             ).replace(microsecond=0)
-            print(f"Deleting data older than {delete_threshold}")
+            logger.info(f"Deleting data older than {delete_threshold}")
 
             self._db.query(models.State).filter(
                 models.State.created < delete_threshold

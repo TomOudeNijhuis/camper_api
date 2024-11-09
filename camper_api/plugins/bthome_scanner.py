@@ -6,7 +6,7 @@ from ..database import get_db
 from .. import crud, schemas
 from .bthome_bleak import BTHomeBaseScanner
 
-logger = logging.getLogger("camper-api")
+logger = logging.getLogger("uvicorn.camper-api.bthome_scanner")
 
 
 class BTHomeScanner:

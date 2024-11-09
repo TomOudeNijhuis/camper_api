@@ -4,7 +4,10 @@ import platform
 
 class Settings(BaseSettings):
     sqlalchemy_database_url: str = "sqlite:///./storage.db"
-    questdb_config: str = "http://admin:K%sE^+.>>Yzs^4Y@phao.oudenijhuis.org:9000/exec"
+    questdb_configs: list[str] = [
+        "http://admin:K%sE^+.>>Yzs^4Y@phao.oudenijhuis.org:9000/exec",
+        "http://admin:K%sE^+.>>Yzs^4Y@192.168.1.110:9000/exec",
+    ]
 
     state_monitor_sample_interval: int = 60  # seconds
     state_responsive_sample_interval: int = 10  # seconds
@@ -13,7 +16,7 @@ class Settings(BaseSettings):
 
     questdb_upload_timeout: int = 10 * 60  # seconds
     questdb_upload_interval: int = 15 * 60  # seconds
-    questdb_startup_delay: int = 2  # seconds
+    startup_delay: int = 5  # seconds
     questdb_startup_chunk_size: int = 100
     cache_retention: int = 5  # minutes
 

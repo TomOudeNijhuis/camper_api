@@ -6,7 +6,7 @@ from ..config import settings
 from ..database import get_db
 from .. import crud, schemas
 
-logger = logging.getLogger("camper-api")
+logger = logging.getLogger("uvicorn.camper-api.hymer_serial")
 
 
 class HymerSerial:
@@ -74,6 +74,8 @@ class HymerSerial:
 
     async def process_task(self):
         while 1:
+            await asyncio.sleep(settings.startup_delay)
+
             try:
                 value = self._command("VOLTAGE", "mains")
                 await self._store_state("mains_voltage", value)
@@ -110,7 +112,7 @@ class HymerSerial:
                     self.monitor_counter -= 1
 
             except Exception as ex:
-                logger.error("Error processing", exc_info=True)
+                logger.error(f"Error processing: {str(ex)}")
 
             await asyncio.sleep(settings.state_responsive_sample_interval)
 

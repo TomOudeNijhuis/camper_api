@@ -6,10 +6,13 @@ import inspect
 from enum import Enum
 import asyncio
 from typing import Set
+import logging
 
 from ..config import settings
 from ..database import get_db
 from .. import crud, schemas
+
+logger = logging.getLogger("uvicorn.camper-api.victron_scanner")
 
 
 def parse_object_dict(obj):
@@ -108,7 +111,7 @@ class VictronScanner:
         except AdvertisementKeyMissingError:
             return
         except UnknownDeviceError as e:
-            print(f"Unknown device {str(e)}")
+            logger.error(f"Unknown device {str(e)}")
             return
 
         parsed = device.parse(raw_data)
