@@ -1,13 +1,15 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 import platform
 
 
 class Settings(BaseSettings):
     sqlalchemy_database_url: str = "sqlite:///./storage.db"
-    questdb_configs: list[str] = [
-        "http://admin:K%sE^+.>>Yzs^4Y@phao.oudenijhuis.org:9000/exec",
-        "http://admin:K%sE^+.>>Yzs^4Y@192.168.1.110:9000/exec",
+    questdb_configs: list[dict[str, str]] = [
+        {"host": "phao.oudenijhuis.org", "port": "9000"},
+        {"host": "192.168.1.110", "port": "9000"},
     ]
+    questdb_user: str
+    questdb_password: str
 
     state_monitor_sample_interval: int = 60  # seconds
     state_responsive_sample_interval: int = 10  # seconds
@@ -74,6 +76,8 @@ class Settings(BaseSettings):
         "waste_state",
         "pump_state",
     ]
+
+    model_config = SettingsConfigDict(env_file=".env")
 
 
 class DebugSettings(Settings):
