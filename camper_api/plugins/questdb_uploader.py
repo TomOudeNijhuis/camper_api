@@ -57,7 +57,7 @@ class QuestDbUploader:
 
                     if PROTOCOL == "ilp":
                         self._active_config = (
-                            f"http::addr={config["host"]}:{config["port"]};"
+                            f"http::addr={config['host']}:{config['port']};"
                             f"username={settings.questdb_user};password={settings.questdb_password};"
                         )
                     else:
