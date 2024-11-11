@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     state_delete_after_days: int = 7  # days
 
     hymer_serial_port: str = "/dev/serial0"
-    hymer_serial_timeout: int = 3
+    hymer_serial_timeout: int = 10  # seconds
     hymer_serial_speed: int = 115200
 
     bthome_sensors: dict[str, str] = {

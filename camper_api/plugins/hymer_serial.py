@@ -41,6 +41,7 @@ class HymerSerial:
 
         instruction = f"{cmd} {param}\r".encode("ascii")
         self._serial.write(instruction)
+        self._serial.flush()
         resp = self._serial.readline()
 
         if resp and resp[-1] == b"\n"[-1]:
