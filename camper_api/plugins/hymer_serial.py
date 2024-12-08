@@ -82,6 +82,7 @@ class HymerSerial:
                 await self._store_state("mains_voltage", value)
 
                 value = self._command("HOUSEHOLD", "?")
+                print(f"HOUSEHOLD: {value}")
                 await self._store_state("household_state", value)
 
                 value = self._command("WATER", "?")

@@ -18,7 +18,7 @@ class Entity(EntityBase):
     sensor_id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class SensorBase(BaseModel):
@@ -40,7 +40,7 @@ class Sensor(SensorBase):
     entities: list[Entity] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class StateBase(BaseModel):
@@ -57,7 +57,7 @@ class State(StateBase):
     created: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ActionData(BaseModel):
