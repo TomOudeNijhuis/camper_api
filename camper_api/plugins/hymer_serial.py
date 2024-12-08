@@ -82,7 +82,6 @@ class HymerSerial:
                 await self._store_state("mains_voltage", value)
 
                 value = self._command("HOUSEHOLD", "?")
-                print(f"HOUSEHOLD: {value}")
                 await self._store_state("household_state", value)
 
                 value = self._command("WATER", "?")
@@ -120,11 +119,13 @@ class HymerSerial:
 
     async def household(self, state):
         new_state = self._command("HOUSEHOLD", str(state))
-        print(f"CMD HOUSEHOLD: {new_state}")
+        await self._store_state("household_state", new_state)
+
         return {"state": new_state}
 
     async def pump(self, state):
         new_state = self._command("PUMP", str(state))
+        await self._store_state("pump_state", new_state)
 
         return {"state": new_state}
 
