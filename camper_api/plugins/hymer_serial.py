@@ -120,7 +120,7 @@ class HymerSerial:
 
     async def household(self, state):
         new_state = self._command("HOUSEHOLD", str(state))
-
+        print(f"CMD HOUSEHOLD: {new_state}")
         return {"state": new_state}
 
     async def pump(self, state):
