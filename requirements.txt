@@ -6,3 +6,4 @@ victron_ble
 pydantic_settings
 pyserial
 aiohttp
+questdb
