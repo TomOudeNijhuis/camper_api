@@ -157,13 +157,27 @@ async def delete_sensor(
 
 
 @app.get("/sensors/{sensor_id}/entities/", response_model=list[schemas.Entity])
-def read_entities(sensor_id: int, db: Session = Depends(get_db)):
+def read_entities(sensor_id_name: str, db: Session = Depends(get_db)):
+    try:
+        sensor_id = int(sensor_id_name)
+    except ValueError:
+        sensor_id = crud.get_sensor_by_name(db, sensor_id_name)
+        if sensor_id is None:
+            raise HTTPException(status_code=404, detail=f"Sensor {sensor_id_name} not found")
+        
     entities = crud.get_entities_by_sensor(db, sensor_id)
     return entities
 
 
-@app.get("/sensors/{sensor_id}/states/", response_model=list[schemas.State])
-async def read_sensor_states(sensor_id: int, db: Session = Depends(get_db)):
+@app.get("/sensors/{sensor_id_name}/states/", response_model=list[schemas.State])
+async def read_sensor_states(sensor_id_name: str, db: Session = Depends(get_db)):
+    try:
+        sensor_id = int(sensor_id_name)
+    except ValueError:
+        sensor_id = crud.get_sensor_by_name(db, sensor_id_name)
+        if sensor_id is None:
+            raise HTTPException(status_code=404, detail=f"Sensor {sensor_id_name} not found")
+        
     entities = crud.get_entities_by_sensor(db, sensor_id)
     db_states = []
     for entity in entities:
@@ -262,6 +276,36 @@ async def execute_action(
     db: Session = Depends(get_db),
 ):
     db_entity = crud.get_entity(db, target_entity_id)
+    if db_entity is None:
+        raise HTTPException(status_code=404, detail="Entity not found")
+
+    hymer_serial = cast(HymerSerial, request.state.hymer_serial)
+
+    match db_entity.name:
+        case "household_state":
+            response = await hymer_serial.household(**action_data)
+        case "pump_state":
+            response = await hymer_serial.pump(**action_data)
+        case _:
+            raise HTTPException(
+                status_code=404, detail=f"Action on entity {db_entity.name} not allowed"
+            )
+
+    return response
+
+@app.post("/action_by_name/{target_sensor_name}/{target_entity_name}", response_model=dict)
+async def execute_action(
+    request: Request,
+    target_sensor_name: str,
+    target_entity_name: str,
+    action_data: dict,
+    db: Session = Depends(get_db),
+):
+    sensor_id = crud.get_sensor_by_name(db, target_sensor_name)
+    if sensor_id is None:
+        raise HTTPException(status_code=404, detail=f"Sensor {target_sensor_name} not found")
+
+    db_entity = crud.get_entity_by_name(db, sensor_id, target_entity_name)
     if db_entity is None:
         raise HTTPException(status_code=404, detail="Entity not found")
 
