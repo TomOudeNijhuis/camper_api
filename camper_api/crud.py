@@ -128,6 +128,17 @@ async def get_state(db: Session, entity_id: int):
     return db_query.order_by(models.State.created.desc()).first()
 
 
+async def get_states_from_sensor(db: Session, sensor_id: int):
+    db_states = (
+        db.query(models.State)
+        .join(models.Entity, models.State.entity_id == models.Entity.id)
+        .filter(models.Entity.sensor_id == sensor_id)
+        .all()
+    )
+
+    return db_states
+
+
 async def get_parameter_value(db: Session, name: str):
     param = db.query(models.Parameter).where(models.Parameter.name == name).first()
     if param:
