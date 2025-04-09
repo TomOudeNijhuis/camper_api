@@ -264,6 +264,7 @@ async def delete_entity(
     "/entities/{entity_id}/states",
     response_model=list[schemas.State],
     response_model_exclude_unset=True,
+    response_model_exclude=["entity_id", "entity_name"],
 )
 def read_state(
     entity_id: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
@@ -281,6 +282,7 @@ def read_state(
     "/entities/{entity_id}/state",
     response_model=schemas.State,
     response_model_exclude_unset=True,
+    response_model_exclude=["entity_id", "entity_name"],
 )
 async def create_state(
     request: Request, state: schemas.StateCreate, db: Session = Depends(get_db)
