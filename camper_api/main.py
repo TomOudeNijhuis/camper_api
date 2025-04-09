@@ -187,17 +187,17 @@ async def read_sensor_states_by_sensor_id_or_name(
                 status_code=404, detail=f"Sensor {sensor_id_name} not found"
             )
         sensor_id = sensor.id
-
+    """
+    FIXME: This one does not use the cache!
     db_states = await crud.get_states_from_sensor(db, sensor_id)
     """
     entities = crud.get_entities_by_sensor(db, sensor_id)
-    
+
     db_states = []
     for entity in entities:
         db_state = await crud.get_state(db, entity.id)
         if db_state:
             db_states.append(db_state)
-    """
 
     return db_states
 
