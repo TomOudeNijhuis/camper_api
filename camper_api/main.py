@@ -197,7 +197,9 @@ async def read_sensor_states_by_sensor_id_or_name(
     for entity in entities:
         db_state = await crud.get_state(db, entity.id)
         if db_state:
-            db_states.append({**db_state, "entity_name": entity.name})
+            state_model = schemas.State.model_validate(db_state)
+            state_model.entity_name = entity.name
+            db_states.append(state_model)
 
     return db_states
 

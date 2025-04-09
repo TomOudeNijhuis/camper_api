@@ -54,6 +54,7 @@ class StateCreate(StateBase):
 
 class State(StateBase):
     id: Optional[int] = None
+    entity_name: Optional[str] = None
     created: datetime
 
     class Config:
