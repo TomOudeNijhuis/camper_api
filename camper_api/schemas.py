@@ -44,7 +44,7 @@ class Sensor(SensorBase):
 
 
 class StateBase(BaseModel):
-    entity_id: int
+    entity_id: Optional[int] = None
     state: str
 
 
