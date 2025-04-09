@@ -59,7 +59,6 @@ class State(StateBase):
 
     class Config:
         from_attributes = True
-        exclude_none = True
 
 
 class ActionData(BaseModel):

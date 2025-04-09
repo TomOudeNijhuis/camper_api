@@ -260,7 +260,11 @@ async def delete_entity(
     return {"message": f"entity {entity_id} removed."}
 
 
-@app.get("/entities/{entity_id}/states", response_model=list[schemas.State])
+@app.get(
+    "/entities/{entity_id}/states",
+    response_model=list[schemas.State],
+    response_model_exclude_unset=True,
+)
 def read_state(
     entity_id: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
 ):
@@ -273,7 +277,11 @@ def read_state(
     return db_states
 
 
-@app.post("/entities/{entity_id}/state", response_model=schemas.State)
+@app.post(
+    "/entities/{entity_id}/state",
+    response_model=schemas.State,
+    response_model_exclude_unset=True,
+)
 async def create_state(
     request: Request, state: schemas.StateCreate, db: Session = Depends(get_db)
 ):
