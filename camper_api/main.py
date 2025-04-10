@@ -284,14 +284,42 @@ def read_states(
     response_model_exclude_unset=True,
     response_model_exclude=["entity_id", "entity_name"],
 )
-async def create_state(
-    request: Request, state: schemas.StateCreate, db: Session = Depends(get_db)
-):
+async def create_state(state: schemas.StateCreate, db: Session = Depends(get_db)):
     db_state = await crud.create_state(
         db, **state.model_dump(exclude_none=True, exclude_unset=True)
     )
 
     return db_state
+
+
+@app.post(
+    "/states_by_name/{target_sensor_name}/{target_entity_name}",
+    response_model=list[schemas.State],
+    response_model_exclude_unset=True,
+    response_model_exclude=["entity_id", "entity_name"],
+)
+async def states_by_sensor_and_entity_name(
+    target_sensor_name: str,
+    target_entity_name: str,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+):
+    db_sensor = crud.get_sensor_by_name(db, target_sensor_name)
+    if db_sensor is None:
+        raise HTTPException(
+            status_code=404, detail=f"Sensor {target_sensor_name} not found"
+        )
+
+    db_entity = crud.get_entity_by_name(db, db_sensor.id, target_entity_name)
+    if db_entity is None:
+        raise HTTPException(
+            status_code=404, detail=f"Entity {target_entity_name} not found"
+        )
+
+    db_states = crud.get_states(db, entity_id=db_entity.id, skip=skip, limit=limit)
+
+    return db_states
 
 
 @app.post("/action/{target_entity_id}", response_model=dict)
@@ -330,13 +358,13 @@ async def execute_action_by_name(
     action_data: dict,
     db: Session = Depends(get_db),
 ):
-    sensor = crud.get_sensor_by_name(db, target_sensor_name)
-    if sensor is None:
+    db_sensor = crud.get_sensor_by_name(db, target_sensor_name)
+    if db_sensor is None:
         raise HTTPException(
             status_code=404, detail=f"Sensor {target_sensor_name} not found"
         )
 
-    db_entity = crud.get_entity_by_name(db, sensor.id, target_entity_name)
+    db_entity = crud.get_entity_by_name(db, db_sensor.id, target_entity_name)
     if db_entity is None:
         raise HTTPException(
             status_code=404, detail=f"Entity {target_entity_name} not found"
