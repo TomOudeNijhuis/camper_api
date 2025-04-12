@@ -307,7 +307,7 @@ def read_grouped_states(
         # We add 1 to samples to get the correct range (start to end inclusive)
         date_range = pd.date_range(end=now, periods=samples + 1, freq=period)
         after = date_range[0]
-        print(f"Date range: {date_range}")
+        logger.info(f"Date range: {date_range}")
 
     except Exception as e:
         logger.warning(
