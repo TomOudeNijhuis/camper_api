@@ -6,6 +6,7 @@ import asyncio
 import logging
 from datetime import datetime, timedelta
 from typing import cast
+import pandas as pd
 
 from . import crud, models, schemas
 from .database import engine, get_db
@@ -278,6 +279,101 @@ def read_states(
     return db_states
 
 
+@app.get(
+    "/entities/{entity_id}/grouped_states",
+    response_model=dict,
+)
+def read_grouped_states(
+    entity_id: int,
+    period: str = "4h",
+    samples: int = 100,
+    db: Session = Depends(get_db),
+):
+    """
+    Get historical state data grouped by time periods.
+
+    Parameters:
+    - entity_id: The ID of the entity to get states for
+    - period: Resampling period (e.g., '4h', '1d', '30min')
+    - samples: Number of samples to return
+    """
+    db_entity = crud.get_entity(db, entity_id)
+    if db_entity is None:
+        raise HTTPException(status_code=404, detail="Entity not found")
+
+    try:
+        # Create a date range with the specified frequency
+        now = datetime.now()
+        # We add 1 to samples to get the correct range (start to end inclusive)
+        date_range = pd.date_range(end=now, periods=samples + 1, freq=period)
+        after = date_range[0]
+    except Exception as e:
+        logger.warning(
+            f"Failed to parse period '{period}': {e}. Using default calculation."
+        )
+        raise HTTPException(status_code=404, detail="Could not calculate data range")
+
+    # Get states using the after parameter instead of limit estimation
+    db_states = crud.get_states(db, entity_id=entity_id, after=after)
+
+    if not db_states:
+        return {
+            "is_numeric": False,
+            "entity_name": db_entity.name,
+            "unit": db_entity.unit,
+            "data": [],
+        }
+
+    # Convert to DataFrame
+    states_df = pd.DataFrame([s.__dict__ for s in db_states])
+    states_df["created"] = pd.to_datetime(states_df["created"])
+
+    # Determine if data is numeric
+    is_numeric = True
+    try:
+        states_df["state"] = pd.to_numeric(states_df["state"])
+    except ValueError:
+        is_numeric = False
+        states_df["state"] = states_df["state"].astype(str)
+
+    states_df = states_df.set_index("created")
+
+    result = {
+        "is_numeric": is_numeric,
+        "entity_name": db_entity.name,
+        "unit": db_entity.unit,
+    }
+
+    if is_numeric:
+        # Resample numeric data
+        resampled_df = (
+            states_df.resample(period).agg({"state": ["min", "max", "mean"]}).dropna()
+        )
+
+        # Format for response
+        result["data"] = {
+            "timestamps": resampled_df.index.strftime("%Y-%m-%dT%H:%M:%S").tolist(),
+            "min": resampled_df["state"]["min"].tolist(),
+            "max": resampled_df["state"]["max"].tolist(),
+            "mean": resampled_df["state"]["mean"].tolist(),
+        }
+    else:
+        # For string data, group by unique values
+        unique_states = states_df["state"].unique().tolist()
+        result["data"] = {"unique_states": unique_states, "state_data": []}
+
+        for state in unique_states:
+            state_df = states_df[states_df["state"] == state]
+            result["data"]["state_data"].append(
+                {
+                    "state": state,
+                    "timestamps": state_df.index.strftime("%Y-%m-%dT%H:%M:%S").tolist(),
+                }
+            )
+
+    return result
+
+
 @app.post(
     "/entities/{entity_id}/state",
     response_model=schemas.State,
@@ -290,6 +386,36 @@ async def create_state(state: schemas.StateCreate, db: Session = Depends(get_db)
     )
 
     return db_state
+
+
+@app.get(
+    "/grouped_states_by_name/{target_sensor_name}/{target_entity_name}",
+    response_model=dict,
+)
+def read_grouped_states_by_name(
+    target_sensor_name: str,
+    target_entity_name: str,
+    period: str = "4h",
+    samples: int = 100,
+    db: Session = Depends(get_db),
+):
+    """
+    Get historical state data grouped by time periods, using sensor and entity names.
+    """
+    db_sensor = crud.get_sensor_by_name(db, target_sensor_name)
+    if db_sensor is None:
+        raise HTTPException(
+            status_code=404, detail=f"Sensor {target_sensor_name} not found"
+        )
+
+    db_entity = crud.get_entity_by_name(db, db_sensor.id, target_entity_name)
+    if db_entity is None:
+        raise HTTPException(
+            status_code=404, detail=f"Entity {target_entity_name} not found"
+        )
+
+    # Reuse the existing endpoint with the entity ID
+    return read_grouped_states(db_entity.id, period, samples, db)
 
 
 @app.post(

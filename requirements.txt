@@ -7,3 +7,4 @@ pydantic_settings
 pyserial
 aiohttp
 questdb
+pandas
