@@ -307,16 +307,15 @@ def read_grouped_states(
         # We add 1 to samples to get the correct range (start to end inclusive)
         date_range = pd.date_range(end=now, periods=samples + 1, freq=period)
         after = date_range[0]
-        logger.info(f"Date range: {date_range}")
-
     except Exception as e:
         logger.warning(
             f"Failed to parse period '{period}': {e}. Using default calculation."
         )
         raise HTTPException(status_code=404, detail="Could not calculate data range")
 
-    # Get states using the after parameter instead of limit estimation
-    db_states = crud.get_states(db, entity_id=entity_id, after=after)
+    # Get states using the after parameter and a much higher limit
+    # Use limit=0 to remove the limit completely, or a very high number
+    db_states = crud.get_states(db, entity_id=entity_id, after=after, limit=10000)
 
     if not db_states:
         return {
