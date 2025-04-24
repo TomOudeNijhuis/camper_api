@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     bthome_sensors: dict[str, str] = {
         "inside": "7C:C6:B6:61:E5:68",
-        "outside": "7C:C6:B6:65:75:A1",
+        "outside": "38:39:8F:98:21:E7",
     }
 
     bthome_entities: dict[str, list[str]] = {
