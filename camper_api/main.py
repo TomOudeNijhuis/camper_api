@@ -304,8 +304,7 @@ def read_grouped_states(
     try:
         # Create a date range with the specified frequency
         now = datetime.now()
-        # We add 1 to samples to get the correct range (start to end inclusive)
-        date_range = pd.date_range(end=now, periods=samples + 1, freq=period)
+        date_range = pd.date_range(end=now, periods=samples, freq=period)
         after = date_range[0]
     except Exception as e:
         logger.warning(
