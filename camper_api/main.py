@@ -325,8 +325,10 @@ def read_grouped_states(
         }
 
     # Convert to DataFrame
-    states_df = pd.DataFrame([s.__dict__ for s in db_states])
+    data = [(s.created, s.state) for s in db_states]
+    states_df = pd.DataFrame(data, columns=["created", "state"])
     states_df["created"] = pd.to_datetime(states_df["created"])
+    states_df = states_df.set_index("created")
 
     # Determine if data is numeric
     is_numeric = True
@@ -335,8 +337,6 @@ def read_grouped_states(
     except ValueError:
         is_numeric = False
         states_df["state"] = states_df["state"].astype(str)
-
-    states_df = states_df.set_index("created")
 
     result = {
         "is_numeric": is_numeric,
