@@ -32,9 +32,9 @@ class State(Base):
     __tablename__ = "states"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    entity_id = Column(Integer, ForeignKey("entities.id"))
+    entity_id = Column(Integer, ForeignKey("entities.id"), index=True)
     state = Column(String(255))
-    created = Column(DateTime)
+    created = Column(DateTime, index=True)
 
     entity = relationship("Entity", viewonly=True)
 

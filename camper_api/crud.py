@@ -77,10 +77,13 @@ def get_states(
 ):
     states_query = db.query(models.State)
 
-    if entity_id:
+    if entity_id is not None and after is not None:
+        states_query = states_query.filter(
+            models.State.entity_id == entity_id, models.State.created > after
+        )
+    elif entity_id is not None:
         states_query = states_query.filter(models.State.entity_id == entity_id)
-
-    if after:
+    elif after is not None:
         states_query = states_query.filter(models.State.created > after)
 
     return states_query.order_by(models.State.created).offset(skip).limit(limit).all()

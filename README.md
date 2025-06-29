@@ -69,3 +69,17 @@ remote:
 
 create: `alembic revision --autogenerate -m "message"`
 update: `alembic upgrade head`
+
+# Retrieving data from QuestDb
+
+```sql
+SELECT
+  ts,
+  min(CAST(state AS DOUBLE)),
+  max(CAST(state AS DOUBLE))
+FROM states
+WHERE sensor = 'inside' AND entity = 'temperature' AND ts >= '2025-05-01T00:00:00Z'
+SAMPLE BY 1d
+ALIGN TO CALENDAR
+```
+
