@@ -22,7 +22,7 @@ from .config import settings
 
 logger = logging.getLogger("uvicorn.camper-api.main")
 logging.basicConfig()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 models.Base.metadata.create_all(bind=engine)
 
