@@ -13,6 +13,7 @@ from ..database import get_db
 from .. import crud, schemas
 
 logger = logging.getLogger("uvicorn.camper-api.victron_scanner")
+logger.setLevel(logging.WARNING)
 
 
 def parse_object_dict(obj):
