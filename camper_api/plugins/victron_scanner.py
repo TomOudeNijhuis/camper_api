@@ -65,9 +65,9 @@ class VictronScanner:
                     entity = crud.create_entity(
                         self._db, schemas.EntityCreate(name=entity_name), sensor.id
                     )
-                    self._devices[sensor.address.lower()]["entities"][
-                        entity_name
-                    ] = entity.id
+                    self._devices[sensor.address.lower()]["entities"][entity_name] = (
+                        entity.id
+                    )
 
     def get_device(self, ble_device: BLEDevice, raw_data: bytes) -> Device:
         address = ble_device.address.lower()
@@ -125,8 +125,8 @@ class VictronScanner:
             elif name in data_dict:
                 self._latest_entity_data[entity_id] = data_dict[name]
             else:
-                raise Exception(
-                    f"Unsupported entity {name} for device {ble_device.address.lower()}"
+                logger.info(
+                    f"Entity {name} not found in data for device {ble_device.address.lower()} at this time."
                 )
 
     async def process_task(self):
