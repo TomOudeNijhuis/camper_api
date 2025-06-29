@@ -6,6 +6,7 @@ from sqlalchemy import pool
 from alembic import context
 from camper_api.config import settings
 from camper_api.database import Base
+from camper_api.models import *
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
