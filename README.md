@@ -62,8 +62,8 @@ Dummy serial port:
 * `socat -d -d pty,raw,echo=0 pty,raw,echo=0`
 
 remote:
-* local port to tcp/ip: `socat /dev/serial0,raw,echo=0,b19200 tcp-listen:2323,reuseaddr`
-* connect to this port remote: `socat -d -d /dev/ttyUSB1,raw,echo=0,b57600 tcp:xx.local:2323`
+* local port to tcp/ip: `socat /dev/serial0,raw,echo=0,b115200 tcp-listen:2323,reuseaddr,fork`
+* connect on local machine `sudo socat -d -d pty,raw,echo=0,link=/dev/ttyR0,b115200 tcp:192.168.68.145:2323`
 
 ## Database migration
 

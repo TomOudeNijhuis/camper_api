@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//home/oudenijhuis/develop_tom/camper_pic/**)",
+      "Read(//home/oudenijhuis/develop_tom/camper_pic/tools/**)",
+      "Bash(ls /home/oudenijhuis/.claude/plans/ 2>/dev/null || echo \"no plans dir yet\")",
+      "Read(//home/oudenijhuis/.claude/plans/**)",
+      "Bash(python -c \"import camper_api.main; print\\('main import OK'\\); print\\('routes:', sorted\\([r.path for r in camper_api.main.app.routes if hasattr\\(r, 'path'\\)]\\)\\)\")",
+      "Bash(python -m py_compile camper_api/main.py camper_api/plugins/hymer_serial.py camper_api/schemas.py camper_api/config.py)",
+      "Bash(python -c ' *)",
+      "Bash(grep -rn -iE \"household.*state|set.*household|pump.*state\" --include='*.py' --include='*.ts' --include='*.tsx' --include='*.js' --include='*.svelte' --include='*.vue' .. 2>/dev/null | grep -iE \"ON|OFF|toggle\" | head -30)",
+      "Read(//home/oudenijhuis/develop_tom/**)",
+      "Bash(python -m py_compile camper_api/plugins/hymer_serial.py camper_api/config.py)"
+    ]
+  }
+}

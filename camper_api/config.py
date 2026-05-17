@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     hymer_serial_port: str = "/dev/ttyS0"
     hymer_serial_timeout: int = 10  # seconds
     hymer_serial_speed: int = 115200
+    hymer_request_timeout: float = 2.0  # seconds, per request/reply round-trip
 
     bthome_sensors: dict[str, str] = {
         "inside": "7C:C6:B6:61:E5:68",
@@ -75,13 +76,15 @@ class Settings(BaseSettings):
         "water_state",
         "waste_state",
         "pump_state",
+        "errors",
     ]
 
     model_config = SettingsConfigDict(env_file=".env")
 
 
 class DebugSettings(Settings):
-    hymer_serial_port: str = "/dev/pts/5"
+    hymer_serial_port: str = "/dev/ttyR0"
+    hymer_request_timeout: float = 3.0
 
 
 class ProductionSettings(Settings):

@@ -61,17 +61,20 @@ async def lifespan(app: FastAPI):
 
     asyncio.create_task(delete_old_tasks.process_task())
     asyncio.create_task(victron_scanner.process_task())
-    asyncio.create_task(hymer_serial.process_task())
+    await hymer_serial.start()
     asyncio.create_task(bthome_scanner.process_runner())
     asyncio.create_task(questdb_uploader.process_runner())
 
     await api_bleak_scanner.start()
 
-    yield {
-        "victron_scanner": victron_scanner,
-        "hymer_serial": hymer_serial,
-        "bthome_scanner": bthome_scanner,
-    }
+    try:
+        yield {
+            "victron_scanner": victron_scanner,
+            "hymer_serial": hymer_serial,
+            "bthome_scanner": bthome_scanner,
+        }
+    finally:
+        await hymer_serial.stop()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -177,22 +180,35 @@ def read_entities_by_sensor_id_or_name(
 
 @app.get("/sensors/{sensor_id_name}/states/", response_model=list[schemas.State])
 async def read_sensor_states_by_sensor_id_or_name(
-    sensor_id_name: str, db: Session = Depends(get_db)
+    sensor_id_name: str,
+    request: Request,
+    subscribe_telemetry: bool = False,
+    db: Session = Depends(get_db),
 ):
+    """
+    Return the latest cached state per entity for the given sensor.
+
+    `subscribe_telemetry=true` is a best-effort hint that the UI is actively
+    polling the camper sensor: it bumps the firmware into fast-push mode for
+    the next ~30 s. Telemetry continues to flow into the state cache either
+    way; this just controls cadence.
+    """
     try:
         sensor_id = int(sensor_id_name)
+        sensor = crud.get_sensor(db, sensor_id)
     except ValueError:
         sensor = crud.get_sensor_by_name(db, sensor_id_name)
-        if sensor is None:
-            raise HTTPException(
-                status_code=404, detail=f"Sensor {sensor_id_name} not found"
-            )
-        sensor_id = sensor.id
-    """
-    FIXME: This one does not use the cache!
-    db_states = await crud.get_states_from_sensor(db, sensor_id)
-    """
-    entities = crud.get_entities_by_sensor(db, sensor_id)
+
+    if sensor is None:
+        raise HTTPException(
+            status_code=404, detail=f"Sensor {sensor_id_name} not found"
+        )
+
+    if subscribe_telemetry and sensor.name == settings.hymer_sensor:
+        hymer_serial = cast(HymerSerial, request.state.hymer_serial)
+        hymer_serial.bump_subscription()
+
+    entities = crud.get_entities_by_sensor(db, sensor.id)
 
     db_states = []
     for entity in entities:
@@ -466,6 +482,8 @@ async def execute_action(
             response = await hymer_serial.household(**action_data)
         case "pump_state":
             response = await hymer_serial.pump(**action_data)
+        case "errors":
+            response = await hymer_serial.errors(**action_data)
         case _:
             raise HTTPException(
                 status_code=404, detail=f"Action on entity {db_entity.name} not allowed"
@@ -503,6 +521,8 @@ async def execute_action_by_name(
             response = await hymer_serial.household(**action_data)
         case "pump_state":
             response = await hymer_serial.pump(**action_data)
+        case "errors":
+            response = await hymer_serial.errors(**action_data)
         case _:
             raise HTTPException(
                 status_code=404, detail=f"Action on entity {db_entity.name} not allowed"
